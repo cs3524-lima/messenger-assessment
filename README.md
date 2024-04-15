@@ -1,5 +1,10 @@
 # CS3524 Team Lima Messenger Application
 
+## Dependencies
+
+`java`
+`make`
+
 ## Setup:
 
 Clone the repository:
@@ -12,20 +17,18 @@ Navigate to the directory:
 
 ### Compiling:
 
-Compile the server and client files:
+Compile the server and client files using the makefile:
 
-`javac -d . messengerserver/*.java`
-
-`javac -d . messengerclient/*.java`
+`make`
 
 ### Running:
 
 #### Run the server:
-`java messenger/messengerserver/RunMessengerServer`
+`java server/StartServer`
 
 #### Run the client:
-`java messenger/messengerclient/RunMessengerClient`
+`java client/StartClient`
 
-The server must be running at the same time as the client.
+The client must be running at the same time as the server.
 
-While both server and client are running, you will be able to send messages through the client.
+While both server and client are running, you will be able to send messages through the client. More than one instance of the client can run and they will be able to relay messages to each other through the server.
