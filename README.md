@@ -1,34 +1,14 @@
 # CS3524 Team Lima Messenger Application
 
 ## Dependencies
+- Java
+- Make
 
-`java`
-`make`
+## Setup Instructions
 
-## Setup:
-
-Clone the repository:
-
-`git clone https://github.com/cs3524-lima/messenger-assessment.git`
-
-Navigate to the directory:
-
-`cd messenger-assessment/messenger`
-
-### Compiling:a
-
-Compile the server and client files using the makefile:
-
-`make`
-
-### Running:
-
-#### Run the server:
-`java server/StartServer`
-
-#### Run the client:
-`java client/StartClient`
-
-The client must be running at the same time as the server.
-
-While both server and client are running, you will be able to send messages through the client. More than one instance of the client can run and they will be able to relay messages to each other through the server.
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/cs3524-lima/messenger-assessment.git
+cd messenger-assessment/messenger
+make
+java server/StartServer
