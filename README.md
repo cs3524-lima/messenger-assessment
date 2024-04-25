@@ -21,13 +21,17 @@ Compile the server and client files using the makefile:
 
 `make`
 
+alternatively if make isn't installed compile all via
+
+`javac shared/*.java server/*.java client/*.java`
+
 ### Running:
 
 #### Run the server:
-`java server/StartServer`
+`java server.StartChatServer`
 
 #### Run the client:
-`java client/StartClient`
+`java client.StartClient`
 
 The client must be running at the same time as the server.
 
