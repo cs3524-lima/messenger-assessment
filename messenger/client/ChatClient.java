@@ -1,17 +1,14 @@
 package client;
 
+import shared.Message;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-import shared.Message;
-
 public class ChatClient {
-
     private String host;
     private int port;
     private String username;
@@ -20,7 +17,7 @@ public class ChatClient {
     private ObjectInputStream streamFromServer;
     private ObjectOutputStream streamToServer;
     private Thread listenerThread;
-    private Boolean exitFlag;
+    private boolean exitFlag;
 
     public ChatClient(String host, int port) {
         this.host = host;
@@ -31,182 +28,195 @@ public class ChatClient {
         this.streamFromServer = null;
         this.streamToServer = null;
         this.listenerThread = null;
-        this.exitFlag = null;
+        this.exitFlag = false;
     }
 
     private void setup() {
-        System.out.println("Setup started.");
         try {
             this.socket = new Socket(this.host, this.port);
-            System.out.println("Connected to server.");
-
             this.scanner = new Scanner(System.in);
-            this.streamToServer = new ObjectOutputStream(
-                this.socket.getOutputStream()
-            );
-            this.streamFromServer =  new ObjectInputStream(
-                this.socket.getInputStream()
-            );
-            
-            this.exitFlag = false;
-            System.out.println("Setup complete!");
-        } catch (UnknownHostException e) {
-            System.err.println("Unknown host `" + this.host + "`.");
-            this.exitFlag = true;
+            this.streamToServer = new ObjectOutputStream(this.socket.getOutputStream());
+            this.streamFromServer = new ObjectInputStream(this.socket.getInputStream());
         } catch (IOException e) {
-            System.err.println("Could not connect to the server.");
-            this.exitFlag = true; // Close the program here
+            System.err.println("Failed to connect to the server.");
+            this.exitFlag = true;
         }
     }
 
     private void registerUser() {
-        if (this.exitFlag) return; // Ensure successful setup
-
-        System.out.println("Insert user name:");
+        System.out.print("Enter your username: ");
         this.username = this.scanner.nextLine();
-        try {
-            this.streamToServer.writeObject(this.username);
-            System.out.println("Registered to server. You can now type messages and commands");
-        } catch (IOException e) {
-            System.err.println("Encountered error registering the user.");
-            this.exitFlag = true;
-        }
+        this.sendMessage("REGISTER", "", this.username);
     }
 
-    private String getUserMessage() {
-        String messageBody = null; // Instantiate the return value
-        // input line is commented out because it
-        // can get in the way when others messages are being printed
-        //System.out.println("Please input >");
-        try {
-            messageBody = this.scanner.nextLine();
-            if (messageBody.equalsIgnoreCase("exit")) {
-                this.exitFlag = true;
-            }
-        } catch (NoSuchElementException e) {
-            // This might be thrown by `this.scanner.nextLine()` if the client 
-            // exits with CTRL-C. In such case exit and return null.
-            this.exitFlag = true;
-        }
-        return messageBody;
+    private String getUserInput() {
+        System.out.print("> ");
+        return this.scanner.nextLine();
     }
 
-    private void sendUserMessage(String messageString) {
+    private void sendMessage(String messageType, String target, String messageBody) {
         try {
-            Message userMessage = new Message(messageString, this.username);
-            this.streamToServer.writeObject(userMessage);
+            Message message = new Message(messageType, target, messageBody, this.username);
+            this.streamToServer.writeObject(message);
         } catch (IOException e) {
-            System.err.println("Failed communicating with the server.");
+            System.err.println("Failed to send the message.");
             this.exitFlag = true;
         }
     }
 
     private String getCommand(String userInput) {
-        if (userInput.startsWith("REGISTER ")) {
+        if (userInput.startsWith("CREATE ")) {
+            return "CREATE";
+        } else if (userInput.startsWith("JOIN ")) {
+            return "JOIN";
+        } else if (userInput.startsWith("LEAVE ")) {
+            return "LEAVE";
+        } else if (userInput.startsWith("REMOVE ")) {
+            return "REMOVE";
+        } else if (userInput.startsWith("SEND ")) {
+            return "SEND";
+        } else if (userInput.startsWith("SUBSCRIBE ")) {
+            return "SUBSCRIBE";
+        } else if (userInput.startsWith("UNSUBSCRIBE ")) {
+            return "UNSUBSCRIBE";
+        } else if (userInput.startsWith("TOPIC ")) {
+            return "TOPIC";
+        } else if (userInput.equalsIgnoreCase("TOPICS")) {
+            return "TOPICS";
+        } else if (userInput.equalsIgnoreCase("EXIT") || userInput.equalsIgnoreCase("QUIT")) {
+            return "EXIT";
+        } else if (userInput.startsWith("REGISTER ")) {
             return "REGISTER";
-        } else if (userInput.equalsIgnoreCase("UNREGISTER")) {
-            return "UNREGISTER";
-        } else if (userInput.equalsIgnoreCase("WHOAMI")) {
-            return "WHOAMI";
-        } else {
-            return "";
         }
+        return "";
     }
 
     private void handleUserInput() {
-        while(!this.exitFlag) {
-            String userInput = this.getUserMessage();
-            if (userInput != null) {
-                String command = getCommand(userInput);
-                switch (command) {
-                    case "REGISTER":
-                    String oldUsername = this.username;
-                        this.username = userInput.substring(9); // Change the username
-                        String notification = oldUsername + " has changed their name to " + this.username;
-                        // Create a new Message instance for the name change notification
-                        Message nameChangeNotification = new Message(notification, oldUsername);
-                        try {
-                            // Write the name change notification to streamToServer
-                            this.streamToServer.writeObject(nameChangeNotification);
-                        } catch (IOException e) {
-                            System.err.println("Failed communicating with the server.");
-                            this.exitFlag = true;
-                        }
-                        break;
-                    case "UNREGISTER":
-                        this.exitFlag = true; // Disconnect the user
-                        break;
-                    case "WHOAMI":
-                        System.out.println("Your username is: " + this.username);
-                        break;
-                    default:
-                        this.sendUserMessage(userInput);
-                        break;
-                }
+        while (!this.exitFlag) {
+            String userInput = this.getUserInput();
+            String command = this.getCommand(userInput);
+
+            switch (command) {
+                case "CREATE":
+                    String groupName = userInput.substring(7);
+                    this.sendMessage("CREATE", groupName, "");
+                    break;
+                case "JOIN":
+                    groupName = userInput.substring(5);
+                    this.sendMessage("JOIN", groupName, "");
+                    break;
+                case "LEAVE":
+                    groupName = userInput.substring(6);
+                    this.sendMessage("LEAVE", groupName, "");
+                    break;
+                case "REMOVE":
+                    groupName = userInput.substring(7);
+                    this.sendMessage("REMOVE", groupName, "");
+                    break;
+                case "SEND":
+                    String[] parts = userInput.split(" ", 3);
+                    if (parts.length == 3) {
+                        String target = parts[1];
+                        String messageBody = parts[2];
+                        this.sendMessage("SEND", target, messageBody);
+                    } else {
+                        System.out.println("Invalid SEND command format.");
+                    }
+                    break;
+                case "SUBSCRIBE":
+                    String topic = userInput.substring(10);
+                    this.sendMessage("SUBSCRIBE", topic, "");
+                    break;
+                case "UNSUBSCRIBE":
+                    topic = userInput.substring(12);
+                    this.sendMessage("UNSUBSCRIBE", topic, "");
+                    break;
+                case "TOPIC":
+                    topic = userInput.substring(6);
+                    this.sendMessage("TOPIC", topic, "");
+                    break;
+                case "TOPICS":
+                    this.sendMessage("TOPICS", "", "");
+                    break;
+                case "REGISTER":
+                    String username = userInput.substring(9);
+                    this.sendMessage("REGISTER", "", username);
+                    break;
+                case "EXIT":
+                    this.exitFlag = true;
+                    this.deregisterUser();
+                    break;
+                default:
+                    if (!userInput.isEmpty()) {
+                        this.sendMessage("MESSAGE", "", userInput);
+                    }
+                    break;
             }
         }
     }
-    
+
+    private void deregisterUser() {
+        this.sendMessage("DEREGISTER", "", "");
+    }
+
     private void startListenerThread() {
-        this.listenerThread = new Thread(this::listenToServer);
-        // Daemon thread: terminates when the program has finished.
-        this.listenerThread.setDaemon(true);
+        this.listenerThread = new Thread(() -> {
+            while (!this.exitFlag) {
+                try {
+                    Message message = (Message) this.streamFromServer.readObject();
+                    String messageType = message.getMessageType();
+                    String messageBody = message.getMessageBody();
+                    String user = message.getUser();
+                    String timestamp = message.getTimestamp();
+
+                    switch (messageType) {
+                        case "TOPIC":
+                            System.out.println("[" + timestamp + "] " + "Forwarded from topic: " + messageBody);
+                            break;
+                        case "TOPICS":
+                            System.out.println("Available topics: " + messageBody);
+                            break;
+                        default:
+                            System.out.println("[" + timestamp + "] " + user + ": " + messageBody);
+                            break;
+                    }
+                } catch (IOException | ClassNotFoundException e) {
+                    if (!this.exitFlag) {
+                        System.err.println("Failed to receive the message.");
+                    }
+                }
+            }
+        });
         this.listenerThread.start();
     }
 
-    private void start() {
-        this.registerUser();
-        this.startListenerThread();
-        this.handleUserInput();
-    }
-
-    private void receiveMessageAndPrint() throws IOException {
-        try {
-            Message inMessage = (Message) this.streamFromServer.readObject();
-            System.out.println(inMessage.toString());
-        } catch (NullPointerException e) {
-            /* 
-            this.streamFromServer was not initialised. Either:
-            (a) something went wrong during setup, or
-            (b) this.close() was called.
-            In both cases we expect this.exitFlag = true.
-            */
-            this.exitFlag = true;
-        } catch (ClassNotFoundException e) {
-            System.err.println("Could not deserialise the message.");
-        }
-    }
-
-    private void listenToServer() {
-        // keep reading from server and print out.
-        while (true) {
-            try {
-                this.receiveMessageAndPrint();
-            } catch (IOException e) {
-                // Close the listener if the program has exited
-                if (this.exitFlag) break;
-
-                // Otherwise print an error message and keep listening
-                System.err.println("Failed while listening to server.");
-            }
-        }
-    }
-
-    public void run() {
+    public void start() {
         this.setup();
-        this.start();
+        if (!this.exitFlag) {
+            this.registerUser();
+            this.startListenerThread();
+            this.handleUserInput();
+        }
         this.close();
     }
 
     private void close() {
-        System.out.println("Exiting...");
         try {
-            this.scanner.close();
-            this.socket.close();
-        } catch (NullPointerException e) {
-            // The setup failed, nothing to do here
+            if (this.socket != null) {
+                this.socket.close();
+            }
+            if (this.scanner != null) {
+                this.scanner.close();
+            }
         } catch (IOException e) {
-            System.err.println("Failed while closing the socket.");
+            System.err.println("Failed to close the resources.");
         }
+    }
+
+    public static void main(String[] args) {
+        String host = "localhost";
+        int port = 8888;
+        ChatClient client = new ChatClient(host, port);
+        client.start();
     }
 }
