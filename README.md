@@ -15,7 +15,7 @@ Navigate to the directory:
 
 `cd messenger-assessment/messenger`
 
-### Compiling:
+### Compiling:a
 
 Compile the server and client files using the makefile:
 
@@ -31,4 +31,4 @@ Compile the server and client files using the makefile:
 
 The client must be running at the same time as the server.
 
-While both server and client are running, you will be able to send messages through the client. More than one instance of the client can run and they will be able to relay messages to each other through the server.
+While both server and client are running, you will be able to send messages through the client. More than one instance of the client can run and they will be able to relay messages to each other through our server.
